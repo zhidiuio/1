@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>登录/注册</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <h2>用户中心</h2>
+
+    {% if tis %}
+    <div style="color: {{ 'green' if '成功' in tis else 'red' }}; margin-bottom: 10px;">
+        {{ tis }}
+    </div>
+    {% endif %}
+
+    <form method="post" action="/account/login">
+        <input type="text" name="username" placeholder="账号" required>
+        <input type="password" name="password" placeholder="密码" required>
+        <br>
+        <button type="submit" name="action" value="2">登录</button>
+        <button type="submit" name="action" value="1">注册</button>
+    </form>
+</body>
+</html>

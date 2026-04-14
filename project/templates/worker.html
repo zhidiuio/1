@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>短链接生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s;
+            outline: none;
+        }
+
+        .input-group input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+
+        .input-group input::placeholder {
+            color: #bbb;
+            font-size: 14px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102,126,234,0.4);
+        }
+
+        /* 结果区域 */
+        .result-box {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .result-box.success {
+            display: block;
+            border-left: 4px solid #28a745;
+        }
+
+        .result-box.error {
+            display: block;
+            border-left: 4px solid #dc3545;
+            background: #fff5f5;
+        }
+
+        .result-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 8px;
+        }
+
+        .result-url {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+            word-break: break-all;
+        }
+
+        .result-url a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .result-url a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 14px;
+        }
+
+        .copy-btn {
+            margin-top: 12px;
+            padding: 8px 16px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #218838;
+        }
+
+        /* 提示信息 */
+        .hint {
+            margin-top: 20px;
+            padding: 12px;
+            background: #e7f3ff;
+            border-radius: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .hint .title {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 8px;
+            color: #666;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔗 短链接生成器</h1>
+            <p>输入长链接，一键生成短链接</p>
+        </div>
+
+        <div class="content">
+            <form method="post" action="/worker" id="shortenForm">
+                <div class="input-group">
+                    <label>📎 原始链接</label>
+                    <input type="text"
+                           name="url"
+                           id="longUrl"
+                           placeholder="例如：https://www.bilibili.com/video/BV1w5XSBtEBM"
+                           required>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submitBtn">
+                    ⚡ 生成短链接
+                </button>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <div class="loading-text">正在生成，请稍候...</div>
+                </div>
+            </form>
+
+            <!-- 成功结果 -->
+            <div id="successResult" class="result-box success">
+                <div class="result-label">✅ 生成成功！短链接：</div>
+                <div class="result-url" id="shortUrl"></div>
+                <button class="copy-btn" onclick="copyToClipboard()">📋 复制链接</button>
+            </div>
+
+            <!-- 错误结果 -->
+            <div id="errorResult" class="result-box error">
+                <div class="result-label">❌ 生成失败</div>
+                <div class="error-message" id="errorMessage"></div>
+            </div>
+
+            <div class="hint">
+                <div class="title">💡 使用说明</div>
+                <div>• 支持 http:// 和 https:// 开头的链接</div>
+                <div>• 如果不带协议，会自动添加 https://</div>
+                <div>• 相同链接只会生成一个短链接</div>
+                <div>• 点击短链接即可跳转到原网页</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('shortenForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const loading = document.getElementById('loading');
+        const successResult = document.getElementById('successResult');
+        const errorResult = document.getElementById('errorResult');
+        const longUrlInput = document.getElementById('longUrl');
+
+        // 隐藏结果框
+        function hideResults() {
+            successResult.style.display = 'none';
+            errorResult.style.display = 'none';
+        }
+
+        // 显示成功
+        function showSuccess(shortUrl) {
+            const shortUrlSpan = document.getElementById('shortUrl');
+            shortUrlSpan.innerHTML = `<a href="${shortUrl}" target="_blank">${shortUrl}</a>`;
+            successResult.style.display = 'block';
+            errorResult.style.display = 'none';
+        }
+
+        // 显示错误
+        function showError(message) {
+            document.getElementById('errorMessage').innerText = message;
+            errorResult.style.display = 'block';
+            successResult.style.display = 'none';
+        }
+
+        // 复制到剪贴板
+        function copyToClipboard() {
+            const shortUrlText = document.getElementById('shortUrl').innerText;
+            if (shortUrlText) {
+                navigator.clipboard.writeText(shortUrlText).then(() => {
+                    const copyBtn = document.querySelector('.copy-btn');
+                    const originalText = copyBtn.innerText;
+                    copyBtn.innerText = '✅ 已复制！';
+                    setTimeout(() => {
+                        copyBtn.innerText = originalText;
+                    }, 2000);
+                }).catch(() => {
+                    alert('复制失败，请手动复制');
+                });
+            }
+        }
+
+        // 表单提交
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // 验证输入
+            const longUrl = longUrlInput.value.trim();
+            if (!longUrl) {
+                showError('请输入链接地址');
+                return;
+            }
+
+            // 显示加载动画
+            hideResults();
+            submitBtn.style.display = 'none';
+            loading.style.display = 'block';
+
+            // 发送请求
+            try {
+                const formData = new FormData(form);
+                const response = await fetch('/worker', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const text = await response.text();
+
+                // 根据返回内容判断成功或失败
+                if (text.includes('生成成功')) {
+                    // 提取短链接
+                    const match = text.match(/短链接[：:]\s*(https?:\/\/[^\s]+)/);
+                    if (match) {
+                        showSuccess(match[1]);
+                    } else {
+                        // 如果提取失败，显示整个响应
+                        showSuccess(text);
+                    }
+                } else if (text.includes('失败') || text.includes('错误')) {
+                    showError(text);
+                } else if (text.includes('已存在')) {
+                    // 已存在的链接，尝试提取短链接
+                    const match = text.match(/短链接[：:]\s*(https?:\/\/[^\s]+)/);
+                    if (match) {
+                        showSuccess(match[1]);
+                    } else {
+                        showError(text);
+                    }
+                } else {
+                    showError(text || '生成失败，请稍后重试');
+                }
+            } catch (error) {
+                showError('网络错误，请稍后重试');
+            } finally {
+                submitBtn.style.display = 'block';
+                loading.style.display = 'none';
+            }
+        });
+
+        // 输入时隐藏结果
+        longUrlInput.addEventListener('input', () => {
+            hideResults();
+        });
+    </script>
+</body>
+</html>
